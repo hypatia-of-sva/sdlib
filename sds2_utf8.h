@@ -1,6 +1,6 @@
 /* 
  * SDSLib 2.0 with UTF-8 -- A C dynamic strings library for UTF-8 encoded strings
- * See 
+ * See https://github.com/hypatia-of-sva/sds2-utf8
  * 
  * This fork of SDS2 provides utility functions for UTF-8 encoded strings
  * and stores the character length on creation and other operations.
