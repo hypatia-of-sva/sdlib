@@ -45,7 +45,8 @@
 
 
 
-#ifndef __SDS2_UTF8_H
+//make sure the non utf-8 sds isn't included
+#if !defined(__SDS2_UTF8_H) && !defined(__SDS_H)
 #define __SDS2_UTF8_H
 
 #define SDS_MAX_PREALLOC (1024*1024)
