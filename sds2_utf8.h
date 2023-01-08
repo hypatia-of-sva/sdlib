@@ -57,7 +57,8 @@ extern const char *SDS_NOINIT;
 #include <stdarg.h>
 #include <stdint.h>
 
-//portable ssize_t due to chqrlie and angstyloop 2020/21, cf. https://stackoverflow.com/questions/34580472/alternative-to-ssize-t-on-posix-unconformant-systems
+//portable ssize_t due to chqrlie and angstyloop 2020/21, cf.
+// https://stackoverflow.com/questions/34580472/alternative-to-ssize-t-on-posix-unconformant-systems
 #if SIZE_MAX == UINT_MAX
 typedef int ssize_t;        /* common 32 bit case */
 #define SSIZE_MIN  INT_MIN
