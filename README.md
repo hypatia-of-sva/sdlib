@@ -1,5 +1,5 @@
 Note: Under development, not at all usable yet.
-
+<!--
 
 Simple Dynamic Strings
 ===
@@ -910,6 +910,9 @@ allocator used. This is especially useful when the program linked to SDS
 is using a different allocator compared to what SDS is using.
 
 The API to access the allocator used by SDS is composed of three functions: `sds_malloc()`, `sds_realloc()` and `sds_free()`.
+
+-->
+
 
 Credits and license
 ===
