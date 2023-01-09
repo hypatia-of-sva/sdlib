@@ -48,8 +48,8 @@
 
 
 //make sure the non utf-8 sds isn't included
-#if !defined(__SDS2_UTF8_H) && !defined(__SDS_H)
-#define __SDS2_UTF8_H
+#if !defined(__SDLIB_H) && !defined(__SDS_H)
+#define __SDLIB_H
 
 
 /* SDS2_BYTESTR_SECTION */
@@ -557,7 +557,7 @@ struct __attribute__ ((__packed__)) sdvhdr {
 
 
 
-#ifdef SDS2_UTF8_IMPLEMENTATION
+#ifdef SDLIB_IMPLEMENTATION
 
 
 /* SDS allocator selection.
@@ -1914,9 +1914,9 @@ int main(void) {
 }
 #endif
 
-#endif /* SDS2_UTF8_IMPLEMENTATION */
+#endif /* SDLIB_IMPLEMENTATION */
 
-#endif /* __SDS2_UTF8_H */
+#endif /* __SDLIB_H */
 
 
 
