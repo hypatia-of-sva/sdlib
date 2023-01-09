@@ -1,4 +1,4 @@
-/* 
+/*  
  * SDLib - A C dynamic allocation library based on SDS2.
  * //SDSLib 2.0 with UTF-8 -- A C dynamic strings library for UTF-8 encoded strings
  * Created by Hypatia of Sva.
