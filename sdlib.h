@@ -8,7 +8,7 @@
  * and stores the character length on creation and other operations.
  * It is also header only, in difference to SDS2.
  * Define the Symbol
- *          SDS2_UTF8_IMPLEMENTATION
+ *          SDLIB_IMPLEMENTATION
  * in one translation unit before inclusion and include this file without it otherwise.
  * 
  * 
