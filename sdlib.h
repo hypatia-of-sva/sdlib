@@ -51,6 +51,15 @@
 #if !defined(__SDS2_UTF8_H) && !defined(__SDS_H)
 #define __SDS2_UTF8_H
 
+
+/* SDS2_BYTESTR_SECTION */
+
+//copy original here
+//rename below to usds. Also have wsds (16-byte without character length), u16sds, u32sds, asds (ANSI) (only conversion functions)?
+
+/* SDS2_UTF8_SECTION */
+
+
 #define SDS_MAX_PREALLOC (1024*1024)
 extern const char *SDS_NOINIT;
 
@@ -363,6 +372,31 @@ void sdsfreesplitres(sds *tokens, int count);
 void sdstolower(sds s);
 void sdstoupper(sds s);
 sds sdsfromlonglong(long long value);
+
+//new functions like the old long long functions (TODO: port to all encodings!)
+sds sdsfromuint8(uint8_t value);
+sds sdsfromuint16(uint16_t value);
+sds sdsfromuint32(uint32_t value);
+sds sdsfromuint64(uint64_t value);
+sds sdsfromuintmax(uintmax_t value);
+sds sdsfromuintptr(uintptr_t value);
+sds sdsfromusize(size_t value);
+sds sdsfromsint8(int8_t value);
+sds sdsfromsint16(int16_t value);
+sds sdsfromsint32(int32_t value);
+sds sdsfromsint64(int64_t value);
+sds sdsfromsintmax(intmax_t value);
+sds sdsfromsintptr(intptr_t value);
+sds sdsfromssize(ssize_t value);
+sds sdsfromptrdiff(ptrdiff_t value);
+sds sdsfromfloat(float value);
+sds sdsfromdouble(double value);
+#ifndef __STDC_NO_COMPLEX__
+#include <complex.h>
+sds sdsfromcfloat(complex float value);
+sds sdsfromcdouble(complex double value);
+#endif
+
 sds sdscatrepr(sds s, const char *p, size_t len);
 sds *sdssplitargs(const char *line, int *argc);
 sds sdsmapchars(sds s, const char *from, const char *to, size_t setlen);
@@ -389,12 +423,141 @@ int sdsTest(int argc, char *argv[]);
 #endif
 
 
+/* SDB_SECTION */
+
+
+/*
+ * SDB - Simple Dynamic Buffers.
+ * Manages memory blocks regardless of content.
+ * Basically a wrapper around the mem-family of functions in string.h
+ * (memcpy, memmove etc.) with a prestored size.
+ * Also allocates new blocks and initializes them.
+ * 
+ */
+
+
+typedef void *sdb;
+
+//here size_t is used to store blocks of all sizes allocatable on the platform
+struct __attribute__ ((__packed__)) sdbhdr {
+    size_t len; /* used */
+    size_t alloc; /* excluding the header */
+    char buf[]; //addressed above as a void*
+};
+
+#define SDB_HDR_VAR(s) struct sdbhdr *sh = (void*)((s)-(sizeof(struct sdbhdr)));
+#define SDB_HDR(s) ((struct sdbhdr *)((s)-(sizeof(struct sdbhdr))))
+static inline size_t sdblen(const sdb s) {
+    return SDB_HDR(s)->len;
+}
+static inline size_t sdbavail(const sdb s) {
+    SDB_HDR_VAR(s);
+    return sh->alloc - sh->len;
+}
+static inline void sdbsetlen(sdb s, size_t newlen) {
+    SDB_HDR(s)->len = newlen;
+}
+static inline void sdbinclen(sdb s, size_t inc) {
+    SDB_HDR(s)->len += inc;
+}
+/* sdballoc() = sdbavail() + sdblen() */
+static inline size_t sdsalloc(const sdb s) {
+    return SDB_HDR(s)->alloc;
+}
+static inline void sdbsetalloc(sdb s, size_t newlen) {
+    SDB_HDR(s)->alloc = newlen;
+}
+
+
+sdb sdbnew(size_t size);                                //per default, use calloc
+sdb sdbnew_uninit(size_t size);                         //uses malloc instead. migbt be faster, but has uninitialized memory
+sdb sdbnew_frombuf(void* init, size_t len);                //length has to be provided since there is no delimiter like \0
+sdb sdbnew_uninit_frombuf(void* init, size_t len);
+sds sdsnew_fromstr(const char *init);                //from c string
+sds sdsnew_uninit_fromstr(const char *init);
+sdb sdbempty(void);                 //= sdballoc(0)
+sdb sdbempty_uninit(void);          //= sdballoc_uninit(0)
+sdb sdbdup(const sdb s);            //uses sdballoc
+sdb sdbdup_uninit(const sdb s);     //uses sdballoc_uninit
+sdb sdbdup_prev(const sdb s);       //copies init state also of part currently unused
+sdb sdbdupsds(const sds s);            //uses sdballoc to dup a string into a buffer. changes len to len+1.
+sdb sdbdupsds_uninit(const sds s);     //uses sdballoc_uninit
+sdb sdbdupsds_prev(const sds s);       //copies init state also of part currently unused
+sds sdbtosds(const sdb s);            // reverse operation. fails (returns nullptr) if there is no \0 byte in the allocated region
+sds sdbtosdszero(const sdb s);        // like sdbtosds, but zeroes initialized but unused memory
+void sdbfree(sdb s);
+sdb sdbgrowzero(sdb s, size_t len);     //grows with zeroed memory. only allocates if exceeds what's already allocated
+sdb sdbgrow_uninit(sdb s, size_t len);  //grows with uninitialized memory
+sdb sdbcat(sdb s, const void *t, size_t len);
+sdb sdbcatsdb(sdb s, const sdb t);
+sdb sdbcatstrlen(sdb s, const void *t, size_t len); //paste strings to the end of blocks
+sdb sdbcatstr(sdb s, const char *t);
+sdb sdbcatsds(sdb s, const sds t);
+sdb sdbcpy(sdb s, const void *t, size_t len);
+sdb sdbcpystrlen(sdb s, const char *t, size_t len);
+sdb sdbcpystr(sdb s, const char *t);
+//pastes a formatted string plus \0 to the end of the buffer
+sdb sdbcatvprintf(sdb s, const char *fmt, va_list ap);
+#ifdef __GNUC__
+sdb sdbcatprintf(sdb s, const char *fmt, ...)
+    __attribute__((format(printf, 2, 3)));
+#else
+sdb sdbcatprintf(sdb s, const char *fmt, ...);
+#endif
+sdb sdbcatfmt(sdb s, char const *fmt, ...);
+sdb sdbtrim(sdb s, const char *cset);                       //trims the bytes in cset, interpreted as c-string
+sdb sdbtrimlen(sdb s, const char *cset, size_t set_len);    //the same, but cset is just a byte array, can trim \0
+void sdbrange(sdb s, ssize_t start, ssize_t end);
+
+
+void *sdb_malloc(size_t size);
+void *sdb_calloc(size_t nmemb, size_t size);
+void *sdb_realloc(void *ptr, size_t size);
+void sdb_free(void *ptr);
+
+
+
+
+
+
+
+
+/* SDV_SECTION */
+
+
+/*
+ * SDB - Simple Dynamic Vectors.
+ * Like SDB, but stores a type size and an element nr instead of the total size
+ * (like the params of calloc). There are functions to retrieve specific elements etc.
+ * Can be packed or aligned, and can have specified alignment.
+ * This layout takes more storage than buffers or strings, but is useful for more
+ * complicated dynamic arrays of structs or objects.
+ * The functions here should be enough to implement a std::vector.
+ * 
+ */
+
+
+struct __attribute__ ((__packed__)) sdvhdr {
+    size_t alignment; //alignment of the elements
+    size_t type_size; /* size per element */
+    uint8_t nr_len; /* used in nr of elements */
+    size_t alloc; /* excluding the header; _not_ as number, but the total allocated storage! */
+    unsigned char flags; /* includes flags like packed/not packed etc. (later tbd!) */
+    char buf[]; //addressed above as a void*
+};
+
+
+
+//other sequeantial structures as well, like heaps?
+
+//definetly some algorithms, like sort, search, regex-matching (also for strings) etc.
+
+
+
 
 
 
 #ifdef SDS2_UTF8_IMPLEMENTATION
-
-
 
 
 /* SDS allocator selection.
@@ -406,12 +569,8 @@ int sdsTest(int argc, char *argv[]);
 
 #define s_malloc malloc
 #define s_realloc realloc
+#define s_calloc calloc //this is introduced for SDB to allocate a zeroed buffer
 #define s_free free
-
-
-
-
-
 
 
 #include <stdio.h>
@@ -420,6 +579,16 @@ int sdsTest(int argc, char *argv[]);
 #include <ctype.h>
 #include <assert.h>
 #include <limits.h>
+
+
+
+
+/* SDS2_BYTESTR_SECTION */
+
+//copy original here
+
+/* SDS2_UTF8_SECTION */
+
 
 const char *SDS_NOINIT = "SDS_NOINIT";
 
@@ -1745,9 +1914,9 @@ int main(void) {
 }
 #endif
 
-
-
-
 #endif /* SDS2_UTF8_IMPLEMENTATION */
 
 #endif /* __SDS2_UTF8_H */
+
+
+
